@@ -1,34 +1,38 @@
 // Deadpan forecast for Mirewick, a city that does not exist.
-// The entry is one line of at most 160 characters, written verbatim to
-// /output/entry.txt. It is assembled below from its three beats — a
-// concrete scene, an escalation, and a short punch — then checked against
-// the gate's length bound before anything is written. The program reads
-// nothing from the environment and makes no network calls.
+// One line, written verbatim to /output/entry.txt. The forecast is held as
+// a single record and rendered by a small formatter; the rendered line is
+// checked against the gate's length bound before anything is written.
 
 import { mkdirSync, writeFileSync } from "node:fs";
 
-const MAX_CHARS = 160;
+interface Forecast {
+  city: string;
+  sky: string;
+  tempC: number;
+  event: string;
+  target: string;
+}
 
-// Beat 1: the broadcast scene (invented city, sky, temperature).
-const SCENE = "Tonight in Mirewick: clear skies, minus 4,";
-// Beat 2: the escalation (an absurd but flatly stated event).
-const ESCALATION =
-  "and the northern lights have filed a formal noise complaint";
-// Beat 3: the punch, three words, delivered deadpan.
-const PUNCH = "against the streetlamps.";
+const FORECAST: Forecast = {
+  city: "Mirewick",
+  sky: "clear skies",
+  tempC: -4,
+  event: "the northern lights have filed a formal noise complaint",
+  target: "the streetlamps",
+};
 
-function buildEntry(): string {
-  const line = [SCENE, ESCALATION, PUNCH].join(" ");
-  if (line.length < 1 || line.length > MAX_CHARS) {
-    throw new Error(`entry is ${line.length} chars, gate allows 1-160`);
-  }
-  return line;
+function render(f: Forecast): string {
+  const temp = f.tempC < 0 ? `minus ${-f.tempC}` : `${f.tempC}`;
+  return `Tonight in ${f.city}: ${f.sky}, ${temp}, and ${f.event} against ${f.target}.`;
 }
 
 function main(): void {
-  const entry = buildEntry();
+  const line = render(FORECAST);
+  if (line.length < 1 || line.length > 160) {
+    throw new Error(`entry is ${line.length} chars, gate allows 1-160`);
+  }
   mkdirSync("/output", { recursive: true });
-  writeFileSync("/output/entry.txt", entry, "utf8");
+  writeFileSync("/output/entry.txt", line, "utf8");
 }
 
 main();
