@@ -1,36 +1,48 @@
-// Deadpan forecast for Mirewick, a city that does not exist.
-// One line, written verbatim to /output/entry.txt. The forecast is held as
-// a single record and rendered by a small formatter; the rendered line is
-// checked against the gate's length bound before anything is written.
+// Deadpan forecast for Mirewick — a city that does not exist.
+// The entry is one line, at most 160 characters, written verbatim to
+// /output/entry.txt. This version builds the line with a small fluent
+// builder: each method appends one clause, and build() joins them,
+// checks the gate's length bound, and returns the finished line.
 
 import { mkdirSync, writeFileSync } from "node:fs";
 
-interface Forecast {
-  city: string;
-  sky: string;
-  tempC: number;
-  event: string;
-  target: string;
-}
+const GATE_MIN = 1;
+const GATE_MAX = 160;
 
-const FORECAST: Forecast = {
-  city: "Mirewick",
-  sky: "clear skies",
-  tempC: -4,
-  event: "the northern lights have filed a formal noise complaint",
-  target: "the streetlamps",
-};
+class ForecastLine {
+  private clauses: string[] = [];
 
-function render(f: Forecast): string {
-  const temp = f.tempC < 0 ? `minus ${-f.tempC}` : `${f.tempC}`;
-  return `Tonight in ${f.city}: ${f.sky}, ${temp}, and ${f.event} against ${f.target}.`;
+  tonight(city: string, sky: string, tempC: number): this {
+    const temp = tempC < 0 ? `minus ${-tempC}` : String(tempC);
+    this.clauses.push(`Tonight in ${city}: ${sky}, ${temp},`);
+    return this;
+  }
+
+  escalation(event: string): this {
+    this.clauses.push(`and ${event}`);
+    return this;
+  }
+
+  punch(target: string): this {
+    this.clauses.push(`against ${target}.`);
+    return this;
+  }
+
+  build(): string {
+    const line = this.clauses.join(" ");
+    if (line.length < GATE_MIN || line.length > GATE_MAX) {
+      throw new Error(`entry is ${line.length} chars, gate allows 1-160`);
+    }
+    return line;
+  }
 }
 
 function main(): void {
-  const line = render(FORECAST);
-  if (line.length < 1 || line.length > 160) {
-    throw new Error(`entry is ${line.length} chars, gate allows 1-160`);
-  }
+  const line = new ForecastLine()
+    .tonight("Mirewick", "clear skies", -4)
+    .escalation("the northern lights have filed a formal noise complaint")
+    .punch("the streetlamps")
+    .build();
   mkdirSync("/output", { recursive: true });
   writeFileSync("/output/entry.txt", line, "utf8");
 }
